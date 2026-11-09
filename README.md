@@ -27,6 +27,20 @@ You can also run it with no file, paste the puzzle, then press Ctrl-D (Ctrl-Z th
 python3 bracket_layers.py --out my_puzzle
 ```
 
+## Website
+
+The `web/` folder holds the same tool as a static web page, for anyone who'd rather not use a terminal: paste the puzzle, pick the options, and download the PNG or PDF. It runs entirely in the browser. The puzzle is never uploaded, and the page makes no outside requests.
+
+To run it locally, open `web/index.html` in a browser, or serve the folder:
+
+```
+python3 -m http.server 8000 --directory web
+```
+
+and go to http://localhost:8000. To publish it, deploy the `web/` folder as a static site (on Vercel: Framework Preset "Other", Root Directory `web`, no build command).
+
+`web/worksheet.js` is a line-by-line port of `bracket_layers.py`. Right-to-left text is laid out by the browser's own bidi support, so brackets inside English words in a Hebrew line come out right, unlike the Python fallback.
+
 ## Options
 
 | Option | What it does |
