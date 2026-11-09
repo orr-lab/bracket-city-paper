@@ -9,6 +9,9 @@ Usage:
     python3 bracket_layers.py puzzle.txt --out my_puzzle --cols 3 --width 1800
     python3 bracket_layers.py puzzle.txt --direction rtl     # force direction (default: auto-detect)
     python3 bracket_layers.py puzzle.txt --ratio 1/2         # half page; also: full (default), 3/4, or 3:4
+    python3 bracket_layers.py puzzle.txt --orientation landscape   # presets on a landscape page (default: portrait)
+    python3 bracket_layers.py puzzle.txt --font "Times New Roman"  # font by name, or a path to a font file
+                                                             # (default: Gisha for Hebrew, Arial for English)
                                                              # text shrinks to fit, short puzzles leave blank space below
 
 Outputs (next to the input, or use --out PREFIX):
@@ -203,6 +206,86 @@ BOLD = [
 ]
 
 
+# Where to look for fonts by name (macOS, Windows, Linux)
+FONT_DIRS = [
+    "/System/Library/Fonts", "/System/Library/Fonts/Supplemental", "/Library/Fonts", "~/Library/Fonts",
+    "C:\\Windows\\Fonts", "~/AppData/Local/Microsoft/Windows/Fonts",
+    "/usr/share/fonts", "/usr/local/share/fonts", "~/.fonts", "~/.local/share/fonts",
+]
+FONT_EXT = (".ttf", ".otf", ".ttc")
+_FONT_INDEX = None
+
+
+def _norm(s):
+    return re.sub(r"[\s_\-]+", "", s.lower())
+
+
+def _bold_names(base):
+    return (base + "bold", base + "bd", base + "b")
+
+
+def _font_index():
+    """Map simplified file names (arial, arialbold, gishabd...) to font file paths."""
+    global _FONT_INDEX
+    if _FONT_INDEX is None:
+        _FONT_INDEX = {}
+        for root in FONT_DIRS:
+            root = os.path.expanduser(root)
+            if not os.path.isdir(root):
+                continue
+            for dirpath, _, files in os.walk(root):
+                for fn in files:
+                    stem, ext = os.path.splitext(fn)
+                    if ext.lower() in FONT_EXT:
+                        _FONT_INDEX.setdefault(_norm(stem), os.path.join(dirpath, fn))
+    return _FONT_INDEX
+
+
+def find_font(name):
+    """Find (regular, bold) font files for a family name like 'Gisha' or 'Arial'."""
+    idx = _font_index()
+    n = _norm(name)
+    reg = next((idx[k] for k in (n, n + "regular") if k in idx), None)
+    bold = next((idx[k] for k in _bold_names(n) if k in idx), None)
+    return reg, bold
+
+
+def choose_fonts(font_arg, rtl):
+    """Pick the font: --font (name or file path), else Gisha for Hebrew / Arial for English."""
+    global REG, BOLD
+    reg = bold = None
+    label = font_arg
+    path = os.path.expanduser(font_arg) if font_arg else None
+    if path and os.path.isfile(path):  # a font file was given
+        reg = path
+        folder = os.path.dirname(path) or "."
+        base = _norm(os.path.splitext(os.path.basename(path))[0])
+        base = base[:-7] if base.endswith("regular") else base
+        for fn in os.listdir(folder):  # look for a bold file next to it
+            stem, ext = os.path.splitext(fn)
+            if ext.lower() in FONT_EXT and _norm(stem) in _bold_names(base):
+                bold = os.path.join(folder, fn)
+                break
+    else:
+        names = [font_arg] if font_arg else (["Gisha", "Arial"] if rtl else ["Arial"])
+        for n in names:
+            reg, bold = find_font(n)
+            if reg:
+                label = n
+                break
+        if not reg and font_arg:
+            sys.exit(f"Couldn't find the font '{font_arg}'. Check the spelling, or give the full path "
+                     f"to the font file:  --font /path/to/font.ttf")
+        if not reg:
+            print(f"Note: {' or '.join(names)} not found on this computer, using a fallback font. "
+                  f"Use --font to pick one.", file=sys.stderr)
+        elif label != names[0]:
+            print(f"Note: {names[0]} not found, using {label}.", file=sys.stderr)
+    if reg:
+        REG = [reg] + REG
+        BOLD = [bold or reg] + BOLD
+
+
 def load_font(paths, size):
     for p in paths:
         if os.path.exists(p):
@@ -334,21 +417,22 @@ def make_image(rows, original, rtl, width=1800, cols=3, fsize=34, show_original=
 
 # ---------------------------------------------------------------- page ratio
 
-# width:height of the picture, based on an A4 portrait page (210 x 297 mm)
-PRESETS = {
-    "full": (210, 297),
-    "3/4": (210, 297 * 0.75),
-    "1/2": (210, 297 * 0.5),
-}
+# Presets are a share of an A4 page (210 x 297 mm), cut by height: the full page, the top
+# three-quarters, or the top half. --orientation decides whether that page is portrait
+# (210 wide, 297 tall) or landscape (297 wide, 210 tall).
+PRESETS = {"full": 1.0, "3/4": 0.75, "1/2": 0.5}
+PAGES = {"portrait": (210, 297), "landscape": (297, 210)}
 
 
-def parse_ratio(s):
+def parse_ratio(s, orientation="portrait"):
+    """Return (width, height) for the picture. A custom width:height is used exactly as typed."""
     s = s.strip().lower()
     if s in PRESETS:
-        return PRESETS[s]
+        page_w, page_h = PAGES[orientation]
+        return page_w, page_h * PRESETS[s]
     m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*[:x]\s*(\d+(?:\.\d+)?)", s)
     if not m or float(m.group(1)) <= 0 or float(m.group(2)) <= 0:
-        sys.exit("--ratio should be full, 3/4, 1/2, or width:height like 3:4 (portrait means height bigger)")
+        sys.exit("--ratio should be full, 3/4, 1/2, or width:height like 3:4 (height bigger means vertical)")
     return float(m.group(1)), float(m.group(2))
 
 
@@ -382,8 +466,13 @@ def main():
     ap.add_argument("--direction", choices=["auto", "rtl", "ltr"], default="auto",
                     help="layout direction (default: rtl if the puzzle contains Hebrew)")
     ap.add_argument("--ratio", default="full",
-                    help="page shape: full (A4 portrait, default), 3/4 (three-quarter page), 1/2 (half page), "
+                    help="page shape: full (whole A4 page, default), 3/4 (three-quarter page), 1/2 (half page), "
                          "or custom width:height like 3:4")
+    ap.add_argument("--orientation", choices=["portrait", "landscape"], default="portrait",
+                    help="page orientation for the full, 3/4 and 1/2 presets (default: portrait/vertical); "
+                         "a custom width:height ignores it")
+    ap.add_argument("--font", help="font name (like Arial) or path to a .ttf/.otf file "
+                                   "(default: Gisha for Hebrew, Arial otherwise)")
     ap.add_argument("--no-original", action="store_true",
                     help="leave the original puzzle out of the picture (default: shown at the top)")
     ap.add_argument("--text", action="store_true", help="also write the tab-separated text version")
@@ -414,9 +503,10 @@ def main():
     if rtl and not USE_RAQM and _get_display is None:
         sys.exit("Hebrew needs the python-bidi package for the image. Install it with:  pip install python-bidi")
 
+    choose_fonts(args.font, rtl)
     original = " ".join(text.split())
     rows = layer(root)
-    rw, rh = parse_ratio(args.ratio)
+    rw, rh = parse_ratio(args.ratio, args.orientation)
     target_h = round(args.width * rh / rw)
     img = fit_to_ratio(rows, original, rtl, args.width, args.cols, args.font_size, target_h,
                        show_original=not args.no_original)

@@ -45,7 +45,9 @@ and go to http://localhost:8000. To publish it, deploy the `web/` folder as a st
 
 | Option | What it does |
 | --- | --- |
-| `--ratio full` | Page shape. `full` = A4 portrait (default), `3/4` = three-quarter page, `1/2` = half page, or custom `width:height` like `3:4` |
+| `--ratio full` | Page shape. `full` = whole A4 page (default), `3/4` = three-quarter page, `1/2` = half page, or custom `width:height` like `3:4` |
+| `--orientation portrait\|landscape` | Orientation of the page the presets are cut from. Default `portrait` (vertical). A custom `width:height` is used exactly as typed |
+| `--font NAME_OR_PATH` | Font, by name (`"Times New Roman"`) or by path to a `.ttf`/`.otf` file. Default: **Gisha** for Hebrew, **Arial** otherwise. If the default isn't installed, it falls back to Arial for Hebrew, then to whatever font it can find, and says so. A font you ask for by name that isn't found is an error. For Hebrew, pick a font that has Hebrew letters |
 | `--no-original` | Leave the original puzzle out of the picture (shown at the top by default) |
 | `--direction auto\|rtl\|ltr` | Layout direction. Default `auto` switches to right-to-left if the puzzle contains Hebrew |
 | `--cols N` | Max clues side by side in a row (default 3) |
