@@ -14,7 +14,8 @@
     width = $("width"), direction = $("direction"), showOriginal = $("show-original"),
     fontNote = $("font-note"), status = $("status"), fileName = $("file-name"), canvas = $("sheet"),
     dlPng = $("dl-png"), dlPdf = $("dl-pdf"), dlTxt = $("dl-txt"), langBtn = $("lang"),
-    empty = $("empty"), sheetSize = $("sheet-size"), spacedBlanks = $("spaced-blanks");
+    empty = $("empty"), sheetSize = $("sheet-size"), spacedBlanks = $("spaced-blanks"),
+    textColor = $("text-color"), bgColor = $("bg-color"), transparent = $("transparent");
   var radios = document.querySelectorAll('input[name="ratio"], input[name="orientation"]');
   var t = I18n.t;
 
@@ -59,6 +60,8 @@
     showIf("custom-only", isCustom);
     showIf("preset-only", !isCustom); // orientation only applies to the presets, like the script
     showIf("font-only", font.value === "other");
+    bgColor.disabled = transparent.checked;
+    canvas.classList.toggle("transparent", transparent.checked);
 
     var text = puzzle.value;
     current = null;
@@ -78,7 +81,7 @@
           showOriginal: showOriginal.checked,
           spacedBlanks: spacedBlanks.checked,
         });
-        Worksheet.render(canvas, fit);
+        Worksheet.render(canvas, fit, { text: textColor.value, bg: bgColor.value, transparent: transparent.checked });
         current = fit;
         setNote(fit.font.notes);
         setStatus(fit.message ? say(fit.message) : null, fit.warning ? "warn" : "info");
@@ -122,7 +125,7 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
   }
 
-  [puzzle, custom, font, customFont, cols, fontSize, width, direction, showOriginal, spacedBlanks].concat(Array.from(radios))
+  [puzzle, custom, font, customFont, cols, fontSize, width, direction, showOriginal, spacedBlanks, textColor, bgColor, transparent].concat(Array.from(radios))
     .forEach(function (el) {
       el.addEventListener("input", schedule);
       el.addEventListener("change", schedule);
@@ -140,10 +143,23 @@
     canvas.toBlob(function (blob) { save(blob, outName("png")); }, "image/png");
   });
 
+  // PDF pages have no transparency: put a transparent picture on white first.
+  function opaque(c) {
+    if (!transparent.checked) return c;
+    var out = document.createElement("canvas");
+    out.width = c.width;
+    out.height = c.height;
+    var ctx = out.getContext("2d");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(c, 0, 0);
+    return out;
+  }
+
   dlPdf.addEventListener("click", function () {
     if (!current) return;
     dlPdf.disabled = true;
-    canvasToPdf(canvas).then(function (blob) {
+    canvasToPdf(opaque(canvas)).then(function (blob) {
       save(blob, outName("pdf"));
     }, function (e) {
       setStatus(t("pdf_failed", { error: e.message }), "error");

@@ -354,20 +354,21 @@
       width: width,
       height: totalH,
       fsize: fsize,
-      draw: function (d, offsetY) {
-        draw(d, offsetY || 0);
+      draw: function (d, offsetY, ink) {
+        draw(d, offsetY || 0, ink || {});
       },
     };
 
-    function draw(d, oy) {
+    function draw(d, oy, ink) {
       setDir(d, rtl);
       d.textBaseline = "alphabetic";
-      var grey = "rgb(130,130,130)";
+      var black = ink.text || "black";
+      var grey = ink.grey || "rgb(130,130,130)";
 
       // y is the top of the text (the ascender line), like Pillow's default anchor
       function put(xLeft, xRight, y, text, f, fill) {
         d.font = f;
-        d.fillStyle = fill || "black";
+        d.fillStyle = fill || black;
         var m = d.measureText(bidi(text, rtl));
         var asc = m.fontBoundingBoxAscent != null ? m.fontBoundingBoxAscent : parseFloat(f.replace("bold ", "")) * 0.905;
         if (rtl) {
@@ -408,7 +409,7 @@
             var tRight = rtl ? x + cellw - numw : x + cellw;
             lines.forEach(function (ln, k) { put(tLeft, tRight, y + k * lh, ln, font); });
             var ly = y + h - Math.trunc(fsize * 0.2);
-            hline(x, x + cellw, ly, "black");
+            hline(x, x + cellw, ly, black);
           });
           y += h + (bi < blocks.length - 1 ? gap : 0);
         });
@@ -493,14 +494,33 @@
     return fit;
   }
 
-  // Paint a build() result onto a canvas: white page, content at the top.
-  function render(canvas, fit) {
+  function hexRgb(hex, def) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+    var n = parseInt(m ? m[1] : def, 16);
+    return [n >> 16, (n >> 8) & 255, n & 255];
+  }
+
+  // Paint a build() result onto a canvas, content at the top. colors: { text, bg, transparent }
+  // as "#rrggbb"; the default is black on a white page. The script's grey (130 on white) is
+  // the text color at 49% over the background, so it follows whatever colors are picked.
+  function render(canvas, fit, colors) {
+    colors = colors || {};
+    var text = hexRgb(colors.text, "000000"), bg = hexRgb(colors.bg, "ffffff");
+    var a = 0.49, grey;
+    if (colors.transparent) {
+      grey = "rgba(" + text.join(",") + "," + a + ")";
+    } else {
+      grey = "rgb(" + text.map(function (c, i) { return Math.round(c * a + bg[i] * (1 - a)); }).join(",") + ")";
+    }
     canvas.width = fit.img.width;
     canvas.height = fit.height;
     var ctx = canvas.getContext("2d");
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    fit.img.draw(ctx, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!colors.transparent) {
+      ctx.fillStyle = "rgb(" + bg.join(",") + ")";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    fit.img.draw(ctx, 0, { text: "rgb(" + text.join(",") + ")", grey: grey });
   }
 
   global.Worksheet = {
