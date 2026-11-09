@@ -81,8 +81,7 @@
         Worksheet.render(canvas, fit);
         current = fit;
         setNote(fit.font.notes);
-        setStatus(fit.message ? say(fit.message) : (fit.rtl ? t("hebrew_found") : ""),
-          fit.warning ? "warn" : "info");
+        setStatus(fit.message ? say(fit.message) : null, fit.warning ? "warn" : "info");
       } catch (e) {
         if (!e.code) throw e;
         setNote(null);
