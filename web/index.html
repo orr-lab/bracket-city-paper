@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Bracket Puzzle Worksheet</title>
+<meta name="description" content="Turn a nested-bracket word puzzle into a layered, write-in worksheet for printing. Runs entirely in your browser.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Bracket puzzle worksheet</h1>
+  <p>Paste a nested-bracket puzzle, get a layered write-in worksheet to print. Your puzzle never leaves this browser.</p>
+</header>
+
+<main>
+  <section class="controls" aria-label="Puzzle and options">
+    <label for="puzzle" class="block">Puzzle</label>
+    <textarea id="puzzle" dir="auto" rows="5" spellcheck="false" placeholder="[The [[Opposite of day] sky] was ...]"></textarea>
+    <p class="examples">Try an example:
+      <button type="button" class="link" data-example="en">English</button> ·
+      <button type="button" class="link" data-example="he">Hebrew</button>
+    </p>
+
+    <div class="grid">
+      <label for="ratio">Page ratio</label>
+      <select id="ratio">
+        <option value="full">Full page (A4 portrait)</option>
+        <option value="3/4">3/4 page</option>
+        <option value="1/2">1/2 page</option>
+        <option value="custom">Custom width:height</option>
+      </select>
+
+      <label for="custom-ratio" class="custom-only">Width:height</label>
+      <input id="custom-ratio" class="custom-only" type="text" inputmode="decimal" value="3:4" autocomplete="off">
+
+      <label for="cols">Columns per row</label>
+      <input id="cols" type="number" min="1" max="12" step="1" value="3" inputmode="numeric">
+
+      <label for="font-size">Starting text size</label>
+      <input id="font-size" type="number" min="8" max="120" step="1" value="34" inputmode="numeric">
+
+      <label for="direction">Direction</label>
+      <select id="direction">
+        <option value="auto">Auto (Hebrew → right to left)</option>
+        <option value="rtl">Right to left</option>
+        <option value="ltr">Left to right</option>
+      </select>
+    </div>
+
+    <label class="check"><input id="show-original" type="checkbox" checked> Show the original puzzle at the top</label>
+
+    <p id="status" role="status" aria-live="polite"></p>
+
+    <div class="buttons">
+      <button type="button" id="dl-png" disabled>Download PNG</button>
+      <button type="button" id="dl-pdf" disabled>Download PDF</button>
+    </div>
+  </section>
+
+  <section class="preview" aria-label="Preview">
+    <canvas id="sheet" width="1800" height="2546" aria-label="Worksheet preview"></canvas>
+  </section>
+</main>
+
+<footer>
+  <p><strong>Not affiliated.</strong> This is an unofficial, fan-made tool. It is not affiliated with, endorsed by, or associated with Bracket City or The Atlantic; those names and trademarks belong to their owners. No puzzles are included (the examples are made up), and this tool gives no right to reproduce anyone's puzzles: if you print puzzles made by others, getting permission is up to you. Provided "as is", without warranty, under the MIT license. Not legal advice.
+  <a href="https://github.com/orr-lab/bracket-city-paper#not-affiliated-and-legal-notes">Full notes and source</a>.</p>
+</footer>
+
+<script src="worksheet.js"></script>
+<script src="pdf.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
