@@ -5,94 +5,149 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
 <title>דף עבודה לפאזל סוגריים</title>
 <meta name="description" content="Turn a nested-bracket word puzzle into a layered, write-in worksheet for printing. Runs entirely in your browser.">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <div class="title-row">
-    <h1 data-i18n="title">דף עבודה לפאזל סוגריים</h1>
-    <button type="button" id="lang" class="lang" lang="en" data-i18n="switch_lang">English</button>
+<header class="top">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M9 5H5v22h4M23 5h4v22h-4M12 11h-2v10h2M20 11h2v10h-2"/></svg>
+    <div>
+      <h1 data-i18n="title">דף עבודה לפאזל סוגריים</h1>
+      <p class="tagline" data-i18n="intro">מדביקים פאזל סוגריים ומקבלים דף עבודה בשכבות, עם שורה לכתיבה לכל רמז.</p>
+    </div>
   </div>
-  <p data-i18n="intro">מדביקים פאזל סוגריים מקוננים ומקבלים דף עבודה בשכבות, עם שורה לכתיבה לכל רמז, מוכן להדפסה. הפאזל לא יוצא מהדפדפן.</p>
+  <button type="button" id="lang" class="pill" lang="en" data-i18n="switch_lang">English</button>
 </header>
 
-<main>
-  <section class="controls">
-    <label for="puzzle" class="block" data-i18n="puzzle">פאזל</label>
+<main class="layout">
+  <section class="card input-card">
+    <div class="card-head">
+      <label for="puzzle" class="card-title" data-i18n="puzzle">הפאזל</label>
+      <span class="examples"><span data-i18n="examples">דוגמה:</span>
+        <button type="button" class="chip" data-example="he" data-i18n="example_he">בעברית</button>
+        <button type="button" class="chip" data-example="en" data-i18n="example_en">באנגלית</button>
+      </span>
+    </div>
     <textarea id="puzzle" dir="auto" rows="5" spellcheck="false" placeholder="[הכלב [נובח] ב...]"></textarea>
-    <p class="examples"><span data-i18n="examples">דוגמה:</span>
-      <button type="button" class="link" data-example="he" data-i18n="example_he">בעברית</button> ·
-      <button type="button" class="link" data-example="en" data-i18n="example_en">באנגלית</button>
-    </p>
+    <p class="privacy" data-i18n="privacy">הכול קורה בדפדפן. הפאזל לא נשלח לשום מקום.</p>
+    <p id="status" role="status" aria-live="polite" hidden></p>
+  </section>
 
-    <div class="grid">
-      <label for="ratio" data-i18n="ratio">יחס הדף</label>
-      <select id="ratio">
-        <option value="full" data-i18n="ratio_full">עמוד מלא (A4)</option>
-        <option value="3/4" data-i18n="ratio_34">3/4 עמוד</option>
-        <option value="1/2" data-i18n="ratio_12">1/2 עמוד</option>
-        <option value="custom" data-i18n="ratio_custom">יחס אחר (רוחב:גובה)</option>
-      </select>
-
-      <label for="custom-ratio" class="custom-only" data-i18n="custom_ratio">רוחב:גובה</label>
-      <input id="custom-ratio" class="custom-only" type="text" dir="ltr" inputmode="decimal" value="3:4" autocomplete="off">
-
-      <label for="orientation" class="preset-only" data-i18n="orientation">כיוון הדף</label>
-      <select id="orientation" class="preset-only">
-        <option value="portrait" data-i18n="portrait">לאורך (אנכי)</option>
-        <option value="landscape" data-i18n="landscape">לרוחב (אופקי)</option>
-      </select>
-
-      <label for="font" data-i18n="font">גופן</label>
-      <select id="font">
-        <option value="" data-i18n="font_default">ברירת מחדל (Gisha לעברית, Arial לאנגלית)</option>
-        <option value="Gisha">Gisha</option>
-        <option value="Arial">Arial</option>
-        <option value="Heebo" data-i18n="font_heebo">Heebo (מובנה באתר)</option>
-        <option value="other" data-i18n="font_other">גופן אחר שמותקן במחשב…</option>
-      </select>
-
-      <label for="custom-font" class="font-only" data-i18n="font_name">שם הגופן</label>
-      <input id="custom-font" class="font-only" type="text" dir="auto" autocomplete="off" spellcheck="false" placeholder="לדוגמה: David" data-i18n-placeholder="font_name_ph">
-
-      <label for="cols" data-i18n="cols">רמזים בכל שורה</label>
-      <input id="cols" type="number" min="1" max="12" step="1" value="3" inputmode="numeric">
-
-      <label for="font-size" data-i18n="font_size">גודל טקסט התחלתי</label>
-      <input id="font-size" type="number" min="8" max="120" step="1" value="34" inputmode="numeric">
-
-      <label for="width" data-i18n="width">רוחב התמונה (פיקסלים)</label>
-      <input id="width" type="number" min="300" max="3000" step="100" value="1800" inputmode="numeric">
-
-      <label for="direction" data-i18n="direction">כיוון כתיבה</label>
-      <select id="direction">
-        <option value="auto" data-i18n="dir_auto">אוטומטי (עברית ← מימין לשמאל)</option>
-        <option value="rtl" data-i18n="dir_rtl">מימין לשמאל</option>
-        <option value="ltr" data-i18n="dir_ltr">משמאל לימין</option>
-      </select>
+  <section class="preview" aria-labelledby="preview-title">
+    <div class="toolbar">
+      <div>
+        <h2 id="preview-title" class="card-title" data-i18n="preview">תצוגה מקדימה</h2>
+        <span id="sheet-size" class="muted" dir="ltr"></span>
+      </div>
+      <div class="buttons">
+        <button type="button" id="dl-png" class="btn primary" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10"/></svg><span data-i18n="dl_png">PNG</span></button>
+        <button type="button" id="dl-pdf" class="btn" disabled><span data-i18n="dl_pdf">PDF</span></button>
+        <button type="button" id="dl-txt" class="btn" disabled data-i18n-title="dl_txt_title"><span data-i18n="dl_txt">טקסט</span></button>
+      </div>
     </div>
-
-    <label class="check"><input id="show-original" type="checkbox" checked> <span data-i18n="show_original">להציג את הפאזל המקורי למעלה</span></label>
-
-    <p id="font-note" class="note" aria-live="polite" hidden></p>
-    <p id="status" role="status" aria-live="polite"></p>
-
-    <div class="grid">
-      <label for="file-name" data-i18n="file_name">שם הקובץ</label>
-      <input id="file-name" type="text" dir="auto" value="bracket_city" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="buttons">
-      <button type="button" id="dl-png" disabled data-i18n="dl_png">הורדת PNG</button>
-      <button type="button" id="dl-pdf" disabled data-i18n="dl_pdf">הורדת PDF</button>
-      <button type="button" id="dl-txt" disabled data-i18n="dl_txt" data-i18n-title="dl_txt_title">הורדת טקסט</button>
+    <div class="stage">
+      <canvas id="sheet" width="1800" height="2546" hidden data-i18n-label="preview" aria-label="תצוגה מקדימה"></canvas>
+      <div id="empty" class="empty">
+        <svg viewBox="0 0 48 60" aria-hidden="true"><rect x="1" y="1" width="46" height="58" rx="3"/><path d="M8 12h32M8 22h14M26 22h14M8 30h14M26 30h14M8 40h32M8 50h32"/></svg>
+        <p class="empty-title" data-i18n="empty_title">כאן יופיע דף העבודה</p>
+        <p data-i18n="empty_body">מדביקים פאזל בתיבה, או מנסים דוגמה:</p>
+        <p>
+          <button type="button" class="chip" data-example="he" data-i18n="example_he">בעברית</button>
+          <button type="button" class="chip" data-example="en" data-i18n="example_en">באנגלית</button>
+        </p>
+      </div>
     </div>
   </section>
 
-  <section class="preview" data-i18n-label="preview" aria-label="תצוגה מקדימה">
-    <canvas id="sheet" width="1800" height="2546" data-i18n-label="preview" aria-label="תצוגה מקדימה"></canvas>
+  <section class="card options-card">
+    <fieldset>
+      <legend class="card-title" data-i18n="sec_page">הדף</legend>
+
+      <div class="field">
+        <span class="label" id="ratio-label" data-i18n="ratio">גודל</span>
+        <div class="seg" role="radiogroup" aria-labelledby="ratio-label">
+          <label><input type="radio" name="ratio" value="full" checked><span data-i18n="r_full">עמוד מלא</span></label>
+          <label><input type="radio" name="ratio" value="3/4"><span>3/4</span></label>
+          <label><input type="radio" name="ratio" value="1/2"><span>1/2</span></label>
+          <label><input type="radio" name="ratio" value="custom"><span data-i18n="r_custom">אחר</span></label>
+        </div>
+      </div>
+
+      <div class="field custom-only" hidden>
+        <label class="label" for="custom-ratio" data-i18n="custom_ratio">רוחב:גובה</label>
+        <input id="custom-ratio" type="text" dir="ltr" inputmode="decimal" value="3:4" autocomplete="off">
+      </div>
+
+      <div class="field preset-only">
+        <span class="label" id="orientation-label" data-i18n="orientation">כיוון הדף</span>
+        <div class="seg" role="radiogroup" aria-labelledby="orientation-label">
+          <label><input type="radio" name="orientation" value="portrait" checked><span><svg class="page-icon" viewBox="0 0 12 16" aria-hidden="true"><rect x="1" y="1" width="10" height="14" rx="1"/></svg><span data-i18n="portrait">לאורך</span></span></label>
+          <label><input type="radio" name="orientation" value="landscape"><span><svg class="page-icon" viewBox="0 0 16 12" aria-hidden="true"><rect x="1" y="1" width="14" height="10" rx="1"/></svg><span data-i18n="landscape">לרוחב</span></span></label>
+        </div>
+      </div>
+
+      <label class="check"><input id="show-original" type="checkbox" checked> <span data-i18n="show_original">להציג את הפאזל המקורי למעלה</span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend class="card-title" data-i18n="sec_font">גופן</legend>
+
+      <div class="field">
+        <label class="label sr-only" for="font" data-i18n="font">גופן</label>
+        <select id="font">
+          <option value="" data-i18n="font_default">ברירת מחדל (Gisha לעברית, Arial לאנגלית)</option>
+          <option value="Gisha">Gisha</option>
+          <option value="Arial">Arial</option>
+          <option value="Heebo" data-i18n="font_heebo">Heebo (מובנה באתר)</option>
+          <option value="other" data-i18n="font_other">גופן אחר שמותקן במחשב…</option>
+        </select>
+      </div>
+
+      <div class="field font-only" hidden>
+        <label class="label" for="custom-font" data-i18n="font_name">שם הגופן</label>
+        <input id="custom-font" type="text" dir="auto" autocomplete="off" spellcheck="false" placeholder="לדוגמה: David" data-i18n-placeholder="font_name_ph">
+      </div>
+
+      <p id="font-note" class="note" aria-live="polite" hidden></p>
+    </fieldset>
+
+    <details class="more">
+      <summary data-i18n="advanced">מתקדם</summary>
+      <div class="pair">
+        <div class="field">
+          <label class="label" for="cols" data-i18n="cols">רמזים בשורה</label>
+          <input id="cols" type="number" min="1" max="12" step="1" value="3" inputmode="numeric">
+          <span class="hint" data-i18n="cols_hint">לכל היותר, זה לצד זה</span>
+        </div>
+        <div class="field">
+          <label class="label" for="font-size" data-i18n="font_size">גודל טקסט התחלתי</label>
+          <input id="font-size" type="number" min="8" max="120" step="1" value="34" inputmode="numeric">
+          <span class="hint" data-i18n="font_size_hint">מוקטן אוטומטית אם צריך</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label" for="direction" data-i18n="direction">כיוון כתיבה</label>
+        <select id="direction">
+          <option value="auto" data-i18n="dir_auto">אוטומטי (עברית ← מימין לשמאל)</option>
+          <option value="rtl" data-i18n="dir_rtl">מימין לשמאל</option>
+          <option value="ltr" data-i18n="dir_ltr">משמאל לימין</option>
+        </select>
+      </div>
+      <div class="pair">
+        <div class="field">
+          <label class="label" for="width" data-i18n="width">רוחב התמונה (פיקסלים)</label>
+          <input id="width" type="number" min="300" max="3000" step="100" value="1800" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label class="label" for="file-name" data-i18n="file_name">שם הקובץ</label>
+          <input id="file-name" type="text" dir="auto" value="bracket_city" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+    </details>
   </section>
 </main>
 

@@ -11,12 +11,17 @@
   var DEFAULT_PREFIX = "bracket_city"; // the script's default --out
 
   var $ = function (id) { return document.getElementById(id); };
-  var puzzle = $("puzzle"), ratio = $("ratio"), custom = $("custom-ratio"), orientation = $("orientation"),
-    font = $("font"), customFont = $("custom-font"), cols = $("cols"), fontSize = $("font-size"),
+  var puzzle = $("puzzle"), custom = $("custom-ratio"), font = $("font"), customFont = $("custom-font"), cols = $("cols"), fontSize = $("font-size"),
     width = $("width"), direction = $("direction"), showOriginal = $("show-original"),
     fontNote = $("font-note"), status = $("status"), fileName = $("file-name"), canvas = $("sheet"),
-    dlPng = $("dl-png"), dlPdf = $("dl-pdf"), dlTxt = $("dl-txt"), langBtn = $("lang");
+    dlPng = $("dl-png"), dlPdf = $("dl-pdf"), dlTxt = $("dl-txt"), langBtn = $("lang"),
+    empty = $("empty"), sheetSize = $("sheet-size");
+  var radios = document.querySelectorAll('input[name="ratio"], input[name="orientation"]');
   var t = I18n.t;
+
+  function checked(name) {
+    return document.querySelector('input[name="' + name + '"]:checked').value;
+  }
 
   var current = null; // the last good build() result
   var pending = false;
@@ -24,6 +29,7 @@
   function setStatus(msg, kind) {
     status.textContent = msg || "";
     status.className = kind || "";
+    status.hidden = !msg;
   }
 
   // a { code, params } message from worksheet.js, in the page's language
@@ -49,7 +55,8 @@
 
   function update() {
     pending = false;
-    var isCustom = ratio.value === "custom";
+    var ratio = checked("ratio");
+    var isCustom = ratio === "custom";
     showIf("custom-only", isCustom);
     showIf("preset-only", !isCustom); // orientation only applies to the presets, like the script
     showIf("font-only", font.value === "other");
@@ -57,13 +64,13 @@
     var text = puzzle.value;
     current = null;
     if (!text.trim()) {
-      setStatus(t("empty"), "info");
+      setStatus(null);
       setNote(null);
     } else {
       try {
         var fit = Worksheet.build(text, {
-          ratio: isCustom ? custom.value : ratio.value,
-          orientation: orientation.value,
+          ratio: isCustom ? custom.value : ratio,
+          orientation: checked("orientation"),
           font: font.value === "other" ? customFont.value : font.value,
           cols: intIn(cols, 3, 1, 12),
           fontSize: intIn(fontSize, 34, 8, 120),
@@ -82,7 +89,13 @@
         setStatus(say(e), "error");
       }
     }
-    canvas.style.opacity = current ? "" : "0.35";
+    // empty box: show the placeholder; a typo mid-edit: keep the last picture, dimmed
+    var drawn = current || (text.trim() && canvas.dataset.drawn);
+    if (current) canvas.dataset.drawn = "1";
+    empty.hidden = !!drawn;
+    canvas.hidden = !drawn;
+    canvas.classList.toggle("stale", !current);
+    sheetSize.textContent = current ? t("sheet_size", { w: canvas.width, h: canvas.height }) : "";
     dlPng.disabled = dlPdf.disabled = dlTxt.disabled = !current;
   }
 
@@ -110,7 +123,7 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
   }
 
-  [puzzle, ratio, custom, orientation, font, customFont, cols, fontSize, width, direction, showOriginal]
+  [puzzle, custom, font, customFont, cols, fontSize, width, direction, showOriginal].concat(Array.from(radios))
     .forEach(function (el) {
       el.addEventListener("input", schedule);
       el.addEventListener("change", schedule);
