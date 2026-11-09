@@ -48,6 +48,7 @@ except ImportError:
 # the text with python-bidi and draw it left to right.
 USE_RAQM = bool(features.check("raqm") and features.check("fribidi"))
 MIRROR = str.maketrans("()[]{}<>", ")(][}{><")
+SPACED_BLANKS = False  # --spaced-blanks: always put a space before and after each numbered blank
 
 
 def _bidi_mirrors():
@@ -157,8 +158,14 @@ def layer(root):
 def clue_text(node):
     out = []
     for p in node.parts:
-        # child slot: the number plus a short blank to write the answer into
-        out.append(p if isinstance(p, str) else f" ({p.num})______ ")
+        # child slot: the number plus a short blank to write the answer into. By default no
+        # spaces are added, so text typed right against a bracket stays attached:
+        # [rat]s -> (3)______s. With --spaced-blanks: (3)______ s
+        if isinstance(p, str):
+            out.append(p)
+        else:
+            slot = f"({p.num})______"
+            out.append(f" {slot} " if SPACED_BLANKS else slot)
     return " ".join("".join(out).split())
 
 
@@ -475,9 +482,15 @@ def main():
                                    "(default: Gisha for Hebrew, Arial otherwise)")
     ap.add_argument("--no-original", action="store_true",
                     help="leave the original puzzle out of the picture (default: shown at the top)")
+    ap.add_argument("--spaced-blanks", action="store_true",
+                    help="put a space before and after each numbered blank, even where the puzzle "
+                         "has text right against a bracket (default: keep it attached, like (3)______s)")
     ap.add_argument("--text", action="store_true", help="also write the tab-separated text version")
     ap.add_argument("--no-raqm", action="store_true", help=argparse.SUPPRESS)  # for testing the fallback
     args = ap.parse_args()
+    if args.spaced_blanks:
+        global SPACED_BLANKS
+        SPACED_BLANKS = True
     if args.no_raqm:
         global USE_RAQM
         USE_RAQM = False
