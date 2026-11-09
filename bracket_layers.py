@@ -10,6 +10,8 @@ Usage:
     python3 bracket_layers.py puzzle.txt --direction rtl     # force direction (default: auto-detect)
     python3 bracket_layers.py puzzle.txt --ratio 1/2         # half page; also: full (default), 3/4, or 3:4
     python3 bracket_layers.py puzzle.txt --orientation landscape   # presets on a landscape page (default: portrait)
+    python3 bracket_layers.py puzzle.txt --font "Times New Roman"  # font by name, or a path to a font file
+                                                             # (default: Gisha for Hebrew, Arial for English)
                                                              # text shrinks to fit, short puzzles leave blank space below
 
 Outputs (next to the input, or use --out PREFIX):
@@ -204,6 +206,86 @@ BOLD = [
 ]
 
 
+# Where to look for fonts by name (macOS, Windows, Linux)
+FONT_DIRS = [
+    "/System/Library/Fonts", "/System/Library/Fonts/Supplemental", "/Library/Fonts", "~/Library/Fonts",
+    "C:\\Windows\\Fonts", "~/AppData/Local/Microsoft/Windows/Fonts",
+    "/usr/share/fonts", "/usr/local/share/fonts", "~/.fonts", "~/.local/share/fonts",
+]
+FONT_EXT = (".ttf", ".otf", ".ttc")
+_FONT_INDEX = None
+
+
+def _norm(s):
+    return re.sub(r"[\s_\-]+", "", s.lower())
+
+
+def _bold_names(base):
+    return (base + "bold", base + "bd", base + "b")
+
+
+def _font_index():
+    """Map simplified file names (arial, arialbold, gishabd...) to font file paths."""
+    global _FONT_INDEX
+    if _FONT_INDEX is None:
+        _FONT_INDEX = {}
+        for root in FONT_DIRS:
+            root = os.path.expanduser(root)
+            if not os.path.isdir(root):
+                continue
+            for dirpath, _, files in os.walk(root):
+                for fn in files:
+                    stem, ext = os.path.splitext(fn)
+                    if ext.lower() in FONT_EXT:
+                        _FONT_INDEX.setdefault(_norm(stem), os.path.join(dirpath, fn))
+    return _FONT_INDEX
+
+
+def find_font(name):
+    """Find (regular, bold) font files for a family name like 'Gisha' or 'Arial'."""
+    idx = _font_index()
+    n = _norm(name)
+    reg = next((idx[k] for k in (n, n + "regular") if k in idx), None)
+    bold = next((idx[k] for k in _bold_names(n) if k in idx), None)
+    return reg, bold
+
+
+def choose_fonts(font_arg, rtl):
+    """Pick the font: --font (name or file path), else Gisha for Hebrew / Arial for English."""
+    global REG, BOLD
+    reg = bold = None
+    label = font_arg
+    path = os.path.expanduser(font_arg) if font_arg else None
+    if path and os.path.isfile(path):  # a font file was given
+        reg = path
+        folder = os.path.dirname(path) or "."
+        base = _norm(os.path.splitext(os.path.basename(path))[0])
+        base = base[:-7] if base.endswith("regular") else base
+        for fn in os.listdir(folder):  # look for a bold file next to it
+            stem, ext = os.path.splitext(fn)
+            if ext.lower() in FONT_EXT and _norm(stem) in _bold_names(base):
+                bold = os.path.join(folder, fn)
+                break
+    else:
+        names = [font_arg] if font_arg else (["Gisha", "Arial"] if rtl else ["Arial"])
+        for n in names:
+            reg, bold = find_font(n)
+            if reg:
+                label = n
+                break
+        if not reg and font_arg:
+            sys.exit(f"Couldn't find the font '{font_arg}'. Check the spelling, or give the full path "
+                     f"to the font file:  --font /path/to/font.ttf")
+        if not reg:
+            print(f"Note: {' or '.join(names)} not found on this computer, using a fallback font. "
+                  f"Use --font to pick one.", file=sys.stderr)
+        elif label != names[0]:
+            print(f"Note: {names[0]} not found, using {label}.", file=sys.stderr)
+    if reg:
+        REG = [reg] + REG
+        BOLD = [bold or reg] + BOLD
+
+
 def load_font(paths, size):
     for p in paths:
         if os.path.exists(p):
@@ -389,6 +471,8 @@ def main():
     ap.add_argument("--orientation", choices=["portrait", "landscape"], default="portrait",
                     help="page orientation for the full, 3/4 and 1/2 presets (default: portrait/vertical); "
                          "a custom width:height ignores it")
+    ap.add_argument("--font", help="font name (like Arial) or path to a .ttf/.otf file "
+                                   "(default: Gisha for Hebrew, Arial otherwise)")
     ap.add_argument("--no-original", action="store_true",
                     help="leave the original puzzle out of the picture (default: shown at the top)")
     ap.add_argument("--text", action="store_true", help="also write the tab-separated text version")
@@ -419,6 +503,7 @@ def main():
     if rtl and not USE_RAQM and _get_display is None:
         sys.exit("Hebrew needs the python-bidi package for the image. Install it with:  pip install python-bidi")
 
+    choose_fonts(args.font, rtl)
     original = " ".join(text.split())
     rows = layer(root)
     rw, rh = parse_ratio(args.ratio, args.orientation)
