@@ -27,6 +27,24 @@ You can also run it with no file, paste the puzzle, then press Ctrl-D (Ctrl-Z th
 python3 bracket_layers.py --out my_puzzle
 ```
 
+## Website
+
+The `web/` folder holds the same tool as a static web page, for anyone who'd rather not use a terminal: paste the puzzle, pick the options, and download the PNG, PDF or text version. It has every option the script has. It runs entirely in the browser. The puzzle is never uploaded, and the page makes no outside requests.
+
+The page is in Hebrew by default, with a button to switch to English (or open it with `?lang=en`). The worksheet's own labels follow the puzzle's language, as in the script.
+
+Fonts come from the visitor's computer: Gisha for Hebrew and Arial for English by default, or any installed font by name. The page checks whether the font is really installed and shows a note when it isn't. In that case it uses Heebo, a free font bundled in `web/fonts/` under the SIL Open Font License (`web/fonts/OFL.txt`). Gisha and Arial are never bundled.
+
+To run it locally, open `web/index.html` in a browser, or serve the folder:
+
+```
+python3 -m http.server 8000 --directory web
+```
+
+and go to http://localhost:8000. To publish it, deploy the `web/` folder as a static site (on Vercel: Framework Preset "Other", Root Directory `web`, no build command).
+
+`web/worksheet.js` is a line-by-line port of `bracket_layers.py`. Right-to-left text is laid out by the browser's own bidi support, so brackets inside English words in a Hebrew line come out right, unlike the Python fallback.
+
 ## Options
 
 | Option | What it does |
