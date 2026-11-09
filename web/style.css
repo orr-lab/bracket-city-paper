@@ -134,7 +134,6 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .logo { width: 34px; height: 34px; flex: none; stroke-width: 2.2; }
 h1 { margin: 0; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.01em; }
-.tagline { margin: 2px 0 0; color: var(--ink-2); }
 
 .pill {
   flex: none;
@@ -401,13 +400,11 @@ input:focus, select:focus { border-color: var(--ink-2); }
 .empty .chip { margin: 4px 2px 0; }
 
 @media (max-width: 520px) {
-  .top { padding: 16px 0 12px; align-items: flex-start; }
-  .tagline { font-size: 0.9rem; }
+  .top { padding: 16px 0 12px; }
   .stage { padding: 12px; min-height: 220px; }
   .toolbar { flex-direction: column; align-items: stretch; }
   .buttons .btn { flex: 1; justify-content: center; }
   .buttons .btn.primary { flex: 2; }
-  .brand { align-items: flex-start; }
-  .logo { width: 28px; height: 28px; margin-top: 2px; }
+  .logo { width: 28px; height: 28px; }
   .card { padding: 14px; }
 }
