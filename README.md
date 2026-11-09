@@ -1,6 +1,6 @@
 # bracket-city-paper
 
-Turn a nested-bracket word puzzle (the kind where clues sit inside clues, like `[[Frozen water] cube]`) into a **layered worksheet you can solve on paper**. Paste the puzzle in, get a clean picture back with one write-in line per clue. Made for printing in a school newspaper, where the original nested format leaves no room to write.
+Turn a nested-bracket word puzzle (the kind where clues sit inside clues, like `[Farm building for [Animals that give us [White drink in a carton]]]`) into a **layered worksheet you can solve on paper**. Paste the puzzle in, get a clean picture back with one write-in line per clue. Made for printing in a school newspaper, where the original nested format leaves no room to write.
 
 Works with **English** (left to right) and **Hebrew** (right to left, fully mirrored).
 

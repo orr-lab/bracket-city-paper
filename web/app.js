@@ -4,9 +4,8 @@
 
   // The made-up examples from examples/inputs/
   var EXAMPLES = {
-    en: "[The [[Opposite of day] sky] was [[[Frozen water] cube] [Not hot]] and a [Dog's sound] echoed from the [[Opposite of sun] [Natural satellite]]]",
-    he: "[הכלב [נובח] ב[[ההפך מיום] ה[ירח]] " +
-      "בשעה [[מים קפואים] [לא חם]]]",
+    en: "[The [[Bird that hoots] who stays up late] [Chased prey] [Plural of [Small rodent with a long tail]] in the [Farm building for [Animals that give us [White drink in a carton]]] until [[Star at the center of our solar system] coming up in the morning]]",
+    he: "[[האיש שתופס דגים בשביל פרנסה] [אחז ביד] [חיה שחיה במים ויש לה [מה שיש על הגב של [דג טורף עם שיניים חדות]]] [מילה אחרת לגדול מאוד] ליד [כלי השט הקטן עם [מוטות לחתירה]] לפני [הרגע שבו [הכוכב שמאיר ביום] נעלמת באופק]]",
   };
   var DEFAULT_PREFIX = "bracket_city"; // the script's default --out
 
