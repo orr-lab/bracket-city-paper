@@ -216,10 +216,14 @@
     return rows;
   }
 
-  function clueText(node) {
-    // child slot: the number plus a short blank to write the answer into
+  function clueText(node, spaced) {
+    // child slot: the number plus a short blank to write the answer into. By default no
+    // spaces are added, so text typed right against a bracket stays attached:
+    // [rat]s -> (3)______s. With spaced (--spaced-blanks): (3)______ s
     return collapse(node.parts.map(function (p) {
-      return typeof p === "string" ? p : " (" + p.num + ")______ ";
+      if (typeof p === "string") return p;
+      var slot = "(" + p.num + ")______";
+      return spaced ? " " + slot + " " : slot;
     }).join(""));
   }
 
@@ -237,13 +241,13 @@
   var RLM = "\u200f"; // right-to-left mark, makes each pasted line start as RTL
 
   // The --text version: tab-separated, to paste into Publisher / Word / Docs.
-  function makeText(rows, original, rtl, blankLen) {
+  function makeText(rows, original, rtl, blankLen, spaced) {
     var mark = rtl ? RLM : "";
     var blank = new Array((blankLen || 22) + 1).join("_");
     var lines = [mark + LABELS[rtl].original, mark + original, ""];
     rows.forEach(function (row, i) {
       lines.push(mark + rowTitle(i, rows.length, rtl));
-      row.forEach(function (n) { lines.push(mark + n.num + ".\t" + clueText(n) + "\t" + blank); });
+      row.forEach(function (n) { lines.push(mark + n.num + ".\t" + clueText(n, spaced) + "\t" + blank); });
       lines.push("");
     });
     return lines.join("\n").replace(/\s+$/, "") + "\n";
@@ -277,6 +281,7 @@
   // Mirrors make_image(); draw() below paints the result.
   function makeImage(rows, original, rtl, opts) {
     var width = opts.width, cols = opts.cols, fsize = opts.fsize, showOriginal = opts.showOriginal;
+    var spaced = !!opts.spaced;
     var family = opts.family || fontStack(null);
     var font = fontSpec(fsize, false, family);
     var bold = fontSpec(fsize, true, family);
@@ -332,7 +337,7 @@
       var perLine = Math.min(cols, row.length);
       var cellw = Math.floor((usable - gap * (perLine - 1)) / perLine);
       var textW = cellw - numw;
-      var cells = row.map(function (n) { return [n.num, wrap(clueText(n), font, textW)]; });
+      var cells = row.map(function (n) { return [n.num, wrap(clueText(n, spaced), font, textW)]; });
       var blocks = [];
       for (var s = 0; s < cells.length; s += perLine) {
         var grp = cells.slice(s, s + perLine);
@@ -434,12 +439,12 @@
 
   // Shrink the text until everything fits the page ratio; short puzzles keep blank space below.
   // Returns the layout to draw, the canvas height, and a message (or null).
-  function fitToRatio(rows, original, rtl, width, cols, fsize, targetH, showOriginal, family, minFont) {
+  function fitToRatio(rows, original, rtl, width, cols, fsize, targetH, showOriginal, family, spaced, minFont) {
     if (minFont == null) minFont = 14;
     var f = fsize;
     for (;;) {
       var img = makeImage(rows, original, rtl, {
-        width: width, cols: cols, fsize: f, showOriginal: showOriginal, family: family,
+        width: width, cols: cols, fsize: f, showOriginal: showOriginal, family: family, spaced: spaced,
       });
       if (img.height <= targetH) {
         return {
@@ -479,11 +484,12 @@
     var width = o.width || 1800;
     var targetH = pyRound(width * r[1] / r[0]);
     var fit = fitToRatio(rows, original, rtl, width, o.cols || 3, o.fontSize || 34, targetH,
-      o.showOriginal !== false, font.family);
+      o.showOriginal !== false, font.family, !!o.spacedBlanks);
     fit.rtl = rtl;
     fit.rows = rows;
     fit.original = original;
     fit.font = font;
+    fit.spaced = !!o.spacedBlanks;
     return fit;
   }
 

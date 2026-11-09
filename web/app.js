@@ -14,7 +14,7 @@
     width = $("width"), direction = $("direction"), showOriginal = $("show-original"),
     fontNote = $("font-note"), status = $("status"), fileName = $("file-name"), canvas = $("sheet"),
     dlPng = $("dl-png"), dlPdf = $("dl-pdf"), dlTxt = $("dl-txt"), langBtn = $("lang"),
-    empty = $("empty"), sheetSize = $("sheet-size");
+    empty = $("empty"), sheetSize = $("sheet-size"), spacedBlanks = $("spaced-blanks");
   var radios = document.querySelectorAll('input[name="ratio"], input[name="orientation"]');
   var t = I18n.t;
 
@@ -76,6 +76,7 @@
           width: intIn(width, 1800, 300, 3000),
           direction: direction.value,
           showOriginal: showOriginal.checked,
+          spacedBlanks: spacedBlanks.checked,
         });
         Worksheet.render(canvas, fit);
         current = fit;
@@ -121,7 +122,7 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
   }
 
-  [puzzle, custom, font, customFont, cols, fontSize, width, direction, showOriginal].concat(Array.from(radios))
+  [puzzle, custom, font, customFont, cols, fontSize, width, direction, showOriginal, spacedBlanks].concat(Array.from(radios))
     .forEach(function (el) {
       el.addEventListener("input", schedule);
       el.addEventListener("change", schedule);
@@ -151,7 +152,7 @@
 
   dlTxt.addEventListener("click", function () {
     if (!current) return;
-    var txt = Worksheet.makeText(current.rows, current.original, current.rtl);
+    var txt = Worksheet.makeText(current.rows, current.original, current.rtl, 22, current.spaced);
     save(new Blob([txt], { type: "text/plain;charset=utf-8" }), outName("txt"));
   });
 

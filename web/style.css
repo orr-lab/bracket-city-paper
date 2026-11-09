@@ -290,6 +290,7 @@ input:focus, select:focus { border-color: var(--ink-2); }
 
 .check { display: flex; gap: 8px; align-items: center; margin-top: 4px; cursor: pointer; }
 .check input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.more .check { margin: 0 0 14px; }
 
 .note {
   margin: 0 0 12px;
