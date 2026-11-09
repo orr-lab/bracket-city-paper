@@ -12,6 +12,7 @@
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
 </head>
 <body>
 <header class="top">
@@ -19,7 +20,10 @@
     <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M9 5H5v22h4M23 5h4v22h-4M12 11h-2v10h2M20 11h2v10h-2"/></svg>
     <h1 data-i18n="title">דף עבודה לפאזל סוגריים</h1>
   </div>
-  <button type="button" id="lang" class="pill" lang="en" data-i18n="switch_lang">English</button>
+  <div class="top-actions">
+    <button type="button" id="theme" class="pill icon-pill" aria-pressed="false" data-i18n-label="dark_mode" data-i18n-title="dark_mode" aria-label="מצב כהה" title="מצב כהה"><svg class="moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a6 6 0 1 0 7 7z"/></svg><svg class="sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"/></svg></button>
+    <button type="button" id="lang" class="pill" lang="en" data-i18n="switch_lang">English</button>
+  </div>
 </header>
 
 <main class="layout">
