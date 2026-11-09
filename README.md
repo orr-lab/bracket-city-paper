@@ -2,6 +2,8 @@
 
 Turn a nested-bracket word puzzle (the kind where clues sit inside clues, like `[Farm building for [Animals that give us [White drink in a carton]]]`) into a **layered worksheet you can solve on paper**. Paste the puzzle in, get a clean picture back with one write-in line per clue. Made for printing in a school newspaper, where the original nested format leaves no room to write.
 
+**Use it online: https://brackets.orrknaan.com** (nothing to install), or run the Python script below.
+
 Works with **English** (left to right) and **Hebrew** (right to left, fully mirrored).
 
 ## How the worksheet works
@@ -29,7 +31,7 @@ python3 bracket_layers.py --out my_puzzle
 
 ## Website
 
-The `web/` folder holds the same tool as a static web page, for anyone who'd rather not use a terminal: paste the puzzle, pick the options, and download the PNG, PDF or text version. It has every option the script has. It runs entirely in the browser. The puzzle is never uploaded, and the page makes no outside requests.
+Live at https://brackets.orrknaan.com. The `web/` folder holds the same tool as a static web page, for anyone who'd rather not use a terminal: paste the puzzle, pick the options, and download the PNG, PDF or text version. It has every option the script has. It runs entirely in the browser. The puzzle is never uploaded, and the page makes no outside requests.
 
 The page is in Hebrew by default, with a button to switch to English (or open it with `?lang=en`). The worksheet's own labels follow the puzzle's language, as in the script.
 
