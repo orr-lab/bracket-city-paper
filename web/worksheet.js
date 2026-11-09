@@ -31,9 +31,103 @@
     },
   };
 
-  // Font stack with Hebrew on every platform: Arial has Hebrew on Windows and macOS,
-  // Arial Hebrew covers iOS, Noto Sans Hebrew / Roboto + system fallback cover Android and Linux.
-  var FONT_STACK = 'Arial, "Arial Hebrew", "Noto Sans Hebrew", "Noto Sans", Roboto, "DejaVu Sans", "Segoe UI", sans-serif';
+  // ---------------------------------------------------------------- fonts
+
+  // Gisha and Arial come from the visitor's own installed fonts and are never shipped with the
+  // page. Heebo (SIL OFL, in fonts/) is bundled as the fallback: it has both Hebrew and Latin.
+  var FALLBACK_FONT = "Heebo";
+
+  // Messages are returned as { code, params }; i18n.js turns them into Hebrew or English.
+  // The English wording there is the script's own.
+  function msg(code, params) {
+    return { code: code, params: params || {} };
+  }
+
+  function PuzzleError(code, params) {
+    var e = new Error(code);
+    e.code = code;
+    e.params = params || {};
+    return e;
+  }
+
+  function cssFamily(name) {
+    return '"' + name.replace(/["\\]/g, "") + '"';
+  }
+
+  // The stack used for drawing: the chosen font, then Heebo for any letters it lacks.
+  function fontStack(name) {
+    return (name && name !== FALLBACK_FONT ? cssFamily(name) + ", " : "") + cssFamily(FALLBACK_FONT) + ", sans-serif";
+  }
+
+  // Is this font installed? document.fonts.check() says yes for any system font name, so compare
+  // text widths instead: if "Name", <generic> measures the same as <generic> for every generic
+  // family, the browser fell back each time and the font isn't there.
+  var SAMPLE_LATIN = "mmmmmmmmmmlli WwQ@ 0123456789";
+  var SAMPLE_HEBREW = "\u05e9\u05dc\u05d5\u05dd \u05e2\u05d5\u05dc\u05dd \u05d0\u05d1\u05d2\u05d3\u05d4\u05d5\u05d6\u05d7\u05d8";
+  var HEBREW_LETTERS = SAMPLE_HEBREW.replace(/ /g, ""); // no spaces: the font's own space would count
+  var fontCache = {};
+
+  function hasFont(name, sample) {
+    var key = name + "\u0000" + sample;
+    if (key in fontCache) return fontCache[key];
+    var ctx = getMeasureCtx();
+    ctx.direction = "ltr";
+    var found = ["monospace", "serif", "sans-serif"].some(function (generic) {
+      ctx.font = "72px " + generic;
+      var base = ctx.measureText(sample).width;
+      ctx.font = "72px " + cssFamily(name) + ", " + generic;
+      return ctx.measureText(sample).width !== base;
+    });
+    return (fontCache[key] = found);
+  }
+
+  // Does an installed font have Hebrew letters? Compare against Heebo rather than the generic
+  // families: for letters the first font lacks, some browsers (Chrome on macOS) pick a system
+  // fallback that depends on that first font, so generic-family widths would differ anyway.
+  function hasHebrew(name) {
+    var key = name + "\u0000hebrew";
+    if (key in fontCache) return fontCache[key];
+    var heebo = "72px " + cssFamily(FALLBACK_FONT);
+    if (!(global.document && document.fonts && document.fonts.check(heebo, HEBREW_LETTERS))) {
+      return hasFont(name, HEBREW_LETTERS); // Heebo not loaded (yet): rough answer, not cached
+    }
+    var ctx = getMeasureCtx();
+    ctx.direction = "ltr";
+    ctx.font = heebo;
+    var base = ctx.measureText(HEBREW_LETTERS).width;
+    ctx.font = "72px " + cssFamily(name) + ", " + cssFamily(FALLBACK_FONT);
+    return (fontCache[key] = ctx.measureText(HEBREW_LETTERS).width !== base);
+  }
+
+  // Forget what was measured, e.g. once the built-in font has loaded.
+  function resetFontChecks() {
+    fontCache = {};
+  }
+
+  // Pick the font like the script's choose_fonts(): the asked-for font, else Gisha for Hebrew /
+  // Arial for English. Unlike the script, a missing font isn't an error here: the page falls back
+  // to Heebo and says so in a note.
+  function chooseFont(asked, rtl) {
+    asked = (asked || "").trim();
+    var notes = [];
+    var name = null;
+    if (asked === FALLBACK_FONT) {
+      name = FALLBACK_FONT;
+    } else {
+      var names = asked ? [asked] : (rtl ? ["Gisha", "Arial"] : ["Arial"]);
+      name = names.filter(function (n) { return hasFont(n, SAMPLE_LATIN) || hasFont(n, SAMPLE_HEBREW); })[0] || null;
+      if (!name) {
+        notes.push(msg("font_missing", { names: names, fallback: FALLBACK_FONT }));
+        name = FALLBACK_FONT;
+      } else if (name !== names[0]) {
+        notes.push(msg("font_substituted", { asked: names[0], used: name }));
+      }
+      if (rtl && name !== FALLBACK_FONT && !hasHebrew(name)) {
+        notes.push(msg("font_no_hebrew", { name: name, fallback: FALLBACK_FONT }));
+      }
+    }
+    return { name: name, family: fontStack(name), notes: notes };
+  }
 
   // Python's str.split() / " ".join(): collapse all whitespace.
   function collapse(s) {
@@ -83,7 +177,7 @@
         stack[stack.length - 1].parts.push(n);
         stack.push(n);
       } else if (ch === "]") {
-        if (stack.length === 1) throw new Error("Extra ']' near character " + (i + 1));
+        if (stack.length === 1) throw PuzzleError("extra_bracket", { pos: i + 1 });
         flush();
         stack.pop();
       } else {
@@ -91,7 +185,7 @@
       }
     }
     flush();
-    if (stack.length !== 1) throw new Error("Missing ']': a '[' is never closed");
+    if (stack.length !== 1) throw PuzzleError("missing_bracket");
 
     // If the whole puzzle is wrapped in one big bracket, unwrap it.
     var real = root.parts.filter(function (p) { return !(typeof p === "string" && !p.trim()); });
@@ -138,6 +232,23 @@
     return base;
   }
 
+  // ---------------------------------------------------------------- text output
+
+  var RLM = "\u200f"; // right-to-left mark, makes each pasted line start as RTL
+
+  // The --text version: tab-separated, to paste into Publisher / Word / Docs.
+  function makeText(rows, original, rtl, blankLen) {
+    var mark = rtl ? RLM : "";
+    var blank = new Array((blankLen || 22) + 1).join("_");
+    var lines = [mark + LABELS[rtl].original, mark + original, ""];
+    rows.forEach(function (row, i) {
+      lines.push(mark + rowTitle(i, rows.length, rtl));
+      row.forEach(function (n) { lines.push(mark + n.num + ".\t" + clueText(n) + "\t" + blank); });
+      lines.push("");
+    });
+    return lines.join("\n").replace(/\s+$/, "") + "\n";
+  }
+
   // ---------------------------------------------------------------- image output
 
   var measureCtx = null;
@@ -146,8 +257,8 @@
     return measureCtx;
   }
 
-  function fontSpec(size, bold) {
-    return (bold ? "bold " : "") + size + "px " + FONT_STACK;
+  function fontSpec(size, bold, family) {
+    return (bold ? "bold " : "") + size + "px " + family;
   }
 
   // Right-to-left text goes inside RLE ... PDF, so the browser's own bidi algorithm lays it out
@@ -166,9 +277,10 @@
   // Mirrors make_image(); draw() below paints the result.
   function makeImage(rows, original, rtl, opts) {
     var width = opts.width, cols = opts.cols, fsize = opts.fsize, showOriginal = opts.showOriginal;
-    var font = fontSpec(fsize, false);
-    var bold = fontSpec(fsize, true);
-    var small = fontSpec(Math.trunc(fsize * 0.7), false);
+    var family = opts.family || fontStack(null);
+    var font = fontSpec(fsize, false, family);
+    var bold = fontSpec(fsize, true, family);
+    var small = fontSpec(Math.trunc(fsize * 0.7), false, family);
 
     var ctx = getMeasureCtx();
     setDir(ctx, rtl);
@@ -302,36 +414,39 @@
 
   // ---------------------------------------------------------------- page ratio
 
-  // width:height of the picture, based on an A4 portrait page (210 x 297 mm)
-  var PRESETS = {
-    full: [210, 297],
-    "3/4": [210, 297 * 0.75],
-    "1/2": [210, 297 * 0.5],
-  };
+  // Presets are a share of an A4 page (210 x 297 mm), cut by height: the full page, the top
+  // three-quarters, or the top half. The orientation decides whether that page is portrait
+  // (210 wide, 297 tall) or landscape (297 wide, 210 tall).
+  var PRESETS = { full: 1.0, "3/4": 0.75, "1/2": 0.5 };
+  var PAGES = { portrait: [210, 297], landscape: [297, 210] };
 
-  var RATIO_ERROR = "Ratio should be full, 3/4, 1/2, or width:height like 3:4 (portrait means height bigger)";
-
-  function parseRatio(s) {
+  // Return [width, height] for the picture. A custom width:height is used exactly as typed.
+  function parseRatio(s, orientation) {
     s = s.trim().toLowerCase();
-    if (Object.prototype.hasOwnProperty.call(PRESETS, s)) return PRESETS[s];
+    if (Object.prototype.hasOwnProperty.call(PRESETS, s)) {
+      var page = PAGES[orientation || "portrait"];
+      return [page[0], page[1] * PRESETS[s]];
+    }
     var m = /^(\d+(?:\.\d+)?)\s*[:x]\s*(\d+(?:\.\d+)?)$/.exec(s);
-    if (!m || parseFloat(m[1]) <= 0 || parseFloat(m[2]) <= 0) throw new Error(RATIO_ERROR);
+    if (!m || parseFloat(m[1]) <= 0 || parseFloat(m[2]) <= 0) throw PuzzleError("bad_ratio");
     return [parseFloat(m[1]), parseFloat(m[2])];
   }
 
   // Shrink the text until everything fits the page ratio; short puzzles keep blank space below.
   // Returns the layout to draw, the canvas height, and a message (or null).
-  function fitToRatio(rows, original, rtl, width, cols, fsize, targetH, showOriginal, minFont) {
+  function fitToRatio(rows, original, rtl, width, cols, fsize, targetH, showOriginal, family, minFont) {
     if (minFont == null) minFont = 14;
     var f = fsize;
     for (;;) {
-      var img = makeImage(rows, original, rtl, { width: width, cols: cols, fsize: f, showOriginal: showOriginal });
+      var img = makeImage(rows, original, rtl, {
+        width: width, cols: cols, fsize: f, showOriginal: showOriginal, family: family,
+      });
       if (img.height <= targetH) {
         return {
           img: img,
           height: targetH,
           shrunk: f < fsize,
-          message: f < fsize ? "Text shrunk from " + fsize + " to " + f + " to fit the page ratio." : null,
+          message: f < fsize ? msg("shrunk", { from: fsize, to: f }) : null,
           warning: false,
         };
       }
@@ -340,7 +455,7 @@
           img: img,
           height: img.height,
           shrunk: f < fsize,
-          message: "Warning: too long for this ratio even at the smallest text size, so the picture is taller than asked.",
+          message: msg("too_long"),
           warning: true,
         };
       }
@@ -350,26 +465,25 @@
 
   // ---------------------------------------------------------------- main
 
-  // Everything main() does up to saving files. Throws Error with the script's messages.
+  // Everything main() does up to saving files. Throws an Error with .code / .params.
   function build(text, o) {
-    var root;
-    try {
-      root = parse(text);
-    } catch (e) {
-      throw new Error("Couldn't read the puzzle: " + e.message);
-    }
-    if (!root.children().length) throw new Error("No [brackets] found in the input.");
+    var root = parse(text); // extra_bracket / missing_bracket: "Couldn't read the puzzle: ..."
+    if (!root.children().length) throw PuzzleError("no_brackets");
 
     var dir = o.direction || "auto";
     var rtl = dir === "rtl" || (dir === "auto" && HEBREW.test(text));
+    var font = chooseFont(o.font, rtl);
     var original = collapse(text);
     var rows = layer(root);
-    var r = parseRatio(o.ratio || "full");
+    var r = parseRatio(o.ratio || "full", o.orientation);
     var width = o.width || 1800;
     var targetH = pyRound(width * r[1] / r[0]);
-    var fit = fitToRatio(rows, original, rtl, width, o.cols || 3, o.fontSize || 34, targetH, o.showOriginal !== false);
+    var fit = fitToRatio(rows, original, rtl, width, o.cols || 3, o.fontSize || 34, targetH,
+      o.showOriginal !== false, font.family);
     fit.rtl = rtl;
     fit.rows = rows;
+    fit.original = original;
+    fit.font = font;
     return fit;
   }
 
@@ -386,7 +500,12 @@
   global.Worksheet = {
     HEBREW: HEBREW,
     LABELS: LABELS,
-    FONT_STACK: FONT_STACK,
+    FALLBACK_FONT: FALLBACK_FONT,
+    chooseFont: chooseFont,
+    hasFont: hasFont,
+    hasHebrew: hasHebrew,
+    resetFontChecks: resetFontChecks,
+    makeText: makeText,
     parse: parse,
     layer: layer,
     clueText: clueText,

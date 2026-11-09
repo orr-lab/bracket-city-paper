@@ -8,19 +8,33 @@
     he: "[הכלב [נובח] ב[[ההפך מיום] ה[ירח]] " +
       "בשעה [[מים קפואים] [לא חם]]]",
   };
-  var FILE_PREFIX = "bracket_city_layers"; // same names as the script's default output
+  var DEFAULT_PREFIX = "bracket_city"; // the script's default --out
 
   var $ = function (id) { return document.getElementById(id); };
-  var puzzle = $("puzzle"), ratio = $("ratio"), custom = $("custom-ratio"), cols = $("cols"),
-    fontSize = $("font-size"), direction = $("direction"), showOriginal = $("show-original"),
-    status = $("status"), canvas = $("sheet"), dlPng = $("dl-png"), dlPdf = $("dl-pdf");
+  var puzzle = $("puzzle"), ratio = $("ratio"), custom = $("custom-ratio"), orientation = $("orientation"),
+    font = $("font"), customFont = $("custom-font"), cols = $("cols"), fontSize = $("font-size"),
+    width = $("width"), direction = $("direction"), showOriginal = $("show-original"),
+    fontNote = $("font-note"), status = $("status"), fileName = $("file-name"), canvas = $("sheet"),
+    dlPng = $("dl-png"), dlPdf = $("dl-pdf"), dlTxt = $("dl-txt"), langBtn = $("lang");
+  var t = I18n.t;
 
-  var ok = false;
+  var current = null; // the last good build() result
   var pending = false;
 
   function setStatus(msg, kind) {
     status.textContent = msg || "";
     status.className = kind || "";
+  }
+
+  // a { code, params } message from worksheet.js, in the page's language
+  function say(m) {
+    return m ? t(m.code, m.params) : "";
+  }
+
+  function setNote(notes) {
+    var text = (notes || []).map(say).join(" ");
+    fontNote.textContent = text;
+    fontNote.hidden = !text;
   }
 
   function intIn(el, def, min, max) {
@@ -29,34 +43,47 @@
     return Math.min(max, Math.max(min, v));
   }
 
+  function showIf(cls, on) {
+    document.querySelectorAll("." + cls).forEach(function (el) { el.hidden = !on; });
+  }
+
   function update() {
     pending = false;
     var isCustom = ratio.value === "custom";
-    document.querySelectorAll(".custom-only").forEach(function (el) { el.hidden = !isCustom; });
+    showIf("custom-only", isCustom);
+    showIf("preset-only", !isCustom); // orientation only applies to the presets, like the script
+    showIf("font-only", font.value === "other");
 
     var text = puzzle.value;
-    ok = false;
+    current = null;
     if (!text.trim()) {
-      setStatus("Paste or type a puzzle to see the worksheet.", "info");
+      setStatus(t("empty"), "info");
+      setNote(null);
     } else {
       try {
         var fit = Worksheet.build(text, {
           ratio: isCustom ? custom.value : ratio.value,
+          orientation: orientation.value,
+          font: font.value === "other" ? customFont.value : font.value,
           cols: intIn(cols, 3, 1, 12),
           fontSize: intIn(fontSize, 34, 8, 120),
+          width: intIn(width, 1800, 300, 3000),
           direction: direction.value,
           showOriginal: showOriginal.checked,
         });
         Worksheet.render(canvas, fit);
-        ok = true;
-        setStatus(fit.message || (fit.rtl ? "Hebrew found: right-to-left layout." : ""),
+        current = fit;
+        setNote(fit.font.notes);
+        setStatus(fit.message ? say(fit.message) : (fit.rtl ? t("hebrew_found") : ""),
           fit.warning ? "warn" : "info");
       } catch (e) {
-        setStatus(e.message, "error");
+        if (!e.code) throw e;
+        setNote(null);
+        setStatus(say(e), "error");
       }
     }
-    canvas.style.opacity = ok ? "" : "0.35";
-    dlPng.disabled = dlPdf.disabled = !ok;
+    canvas.style.opacity = current ? "" : "0.35";
+    dlPng.disabled = dlPdf.disabled = dlTxt.disabled = !current;
   }
 
   function schedule() {
@@ -64,6 +91,12 @@
       pending = true;
       requestAnimationFrame(update);
     }
+  }
+
+  // PREFIX_layers.ext, like the script's --out PREFIX
+  function outName(ext) {
+    var prefix = fileName.value.trim().replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "_") || DEFAULT_PREFIX;
+    return prefix + "_layers." + ext;
   }
 
   function save(blob, name) {
@@ -77,10 +110,11 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
   }
 
-  [puzzle, ratio, custom, cols, fontSize, direction, showOriginal].forEach(function (el) {
-    el.addEventListener("input", schedule);
-    el.addEventListener("change", schedule);
-  });
+  [puzzle, ratio, custom, orientation, font, customFont, cols, fontSize, width, direction, showOriginal]
+    .forEach(function (el) {
+      el.addEventListener("input", schedule);
+      el.addEventListener("change", schedule);
+    });
 
   document.querySelectorAll("[data-example]").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -90,19 +124,57 @@
   });
 
   dlPng.addEventListener("click", function () {
-    if (!ok) return;
-    canvas.toBlob(function (blob) { save(blob, FILE_PREFIX + ".png"); }, "image/png");
+    if (!current) return;
+    canvas.toBlob(function (blob) { save(blob, outName("png")); }, "image/png");
   });
 
   dlPdf.addEventListener("click", function () {
-    if (!ok) return;
+    if (!current) return;
     dlPdf.disabled = true;
     canvasToPdf(canvas).then(function (blob) {
-      save(blob, FILE_PREFIX + ".pdf");
+      save(blob, outName("pdf"));
     }, function (e) {
-      setStatus("Couldn't make the PDF: " + e.message, "error");
-    }).then(function () { dlPdf.disabled = !ok; });
+      setStatus(t("pdf_failed", { error: e.message }), "error");
+    }).then(function () { dlPdf.disabled = !current; });
   });
 
+  dlTxt.addEventListener("click", function () {
+    if (!current) return;
+    var txt = Worksheet.makeText(current.rows, current.original, current.rtl);
+    save(new Blob([txt], { type: "text/plain;charset=utf-8" }), outName("txt"));
+  });
+
+  // Hebrew by default; ?lang=en or the language button switches, and the browser remembers it.
+  function setLang(lang, remember) {
+    I18n.apply(lang);
+    if (remember) {
+      try { localStorage.setItem("lang", I18n.lang); } catch (e) { /* storage blocked: fine */ }
+    }
+    schedule();
+  }
+
+  langBtn.addEventListener("click", function () {
+    setLang(I18n.lang === "he" ? "en" : "he", true);
+  });
+
+  var startLang = null;
+  try { startLang = new URLSearchParams(location.search).get("lang"); } catch (e) { /* old browser */ }
+  if (!startLang) {
+    try { startLang = localStorage.getItem("lang"); } catch (e) { /* storage blocked */ }
+  }
+  I18n.apply(startLang || "he");
+
+  // A canvas only draws with a web font once it has loaded, so load the built-in Heebo
+  // (both weights, Hebrew and Latin parts) and redraw when it's ready.
   update();
+  if (document.fonts && document.fonts.load) {
+    var sample = "aא";
+    Promise.all([
+      document.fonts.load("400 34px " + Worksheet.FALLBACK_FONT, sample),
+      document.fonts.load("700 34px " + Worksheet.FALLBACK_FONT, sample),
+    ]).then(function () {
+      Worksheet.resetFontChecks();
+      schedule();
+    }, schedule);
+  }
 })();

@@ -1,76 +1,109 @@
 <!doctype html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<title>Bracket Puzzle Worksheet</title>
+<title>דף עבודה לפאזל סוגריים</title>
 <meta name="description" content="Turn a nested-bracket word puzzle into a layered, write-in worksheet for printing. Runs entirely in your browser.">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <h1>Bracket puzzle worksheet</h1>
-  <p>Paste a nested-bracket puzzle, get a layered write-in worksheet to print. Your puzzle never leaves this browser.</p>
+  <div class="title-row">
+    <h1 data-i18n="title">דף עבודה לפאזל סוגריים</h1>
+    <button type="button" id="lang" class="lang" lang="en" data-i18n="switch_lang">English</button>
+  </div>
+  <p data-i18n="intro">מדביקים פאזל סוגריים מקוננים ומקבלים דף עבודה בשכבות, עם שורה לכתיבה לכל רמז, מוכן להדפסה. הפאזל לא יוצא מהדפדפן.</p>
 </header>
 
 <main>
-  <section class="controls" aria-label="Puzzle and options">
-    <label for="puzzle" class="block">Puzzle</label>
-    <textarea id="puzzle" dir="auto" rows="5" spellcheck="false" placeholder="[The [[Opposite of day] sky] was ...]"></textarea>
-    <p class="examples">Try an example:
-      <button type="button" class="link" data-example="en">English</button> ·
-      <button type="button" class="link" data-example="he">Hebrew</button>
+  <section class="controls">
+    <label for="puzzle" class="block" data-i18n="puzzle">פאזל</label>
+    <textarea id="puzzle" dir="auto" rows="5" spellcheck="false" placeholder="[הכלב [נובח] ב...]"></textarea>
+    <p class="examples"><span data-i18n="examples">דוגמה:</span>
+      <button type="button" class="link" data-example="he" data-i18n="example_he">בעברית</button> ·
+      <button type="button" class="link" data-example="en" data-i18n="example_en">באנגלית</button>
     </p>
 
     <div class="grid">
-      <label for="ratio">Page ratio</label>
+      <label for="ratio" data-i18n="ratio">יחס הדף</label>
       <select id="ratio">
-        <option value="full">Full page (A4 portrait)</option>
-        <option value="3/4">3/4 page</option>
-        <option value="1/2">1/2 page</option>
-        <option value="custom">Custom width:height</option>
+        <option value="full" data-i18n="ratio_full">עמוד מלא (A4)</option>
+        <option value="3/4" data-i18n="ratio_34">3/4 עמוד</option>
+        <option value="1/2" data-i18n="ratio_12">1/2 עמוד</option>
+        <option value="custom" data-i18n="ratio_custom">יחס אחר (רוחב:גובה)</option>
       </select>
 
-      <label for="custom-ratio" class="custom-only">Width:height</label>
-      <input id="custom-ratio" class="custom-only" type="text" inputmode="decimal" value="3:4" autocomplete="off">
+      <label for="custom-ratio" class="custom-only" data-i18n="custom_ratio">רוחב:גובה</label>
+      <input id="custom-ratio" class="custom-only" type="text" dir="ltr" inputmode="decimal" value="3:4" autocomplete="off">
 
-      <label for="cols">Columns per row</label>
+      <label for="orientation" class="preset-only" data-i18n="orientation">כיוון הדף</label>
+      <select id="orientation" class="preset-only">
+        <option value="portrait" data-i18n="portrait">לאורך (אנכי)</option>
+        <option value="landscape" data-i18n="landscape">לרוחב (אופקי)</option>
+      </select>
+
+      <label for="font" data-i18n="font">גופן</label>
+      <select id="font">
+        <option value="" data-i18n="font_default">ברירת מחדל (Gisha לעברית, Arial לאנגלית)</option>
+        <option value="Gisha">Gisha</option>
+        <option value="Arial">Arial</option>
+        <option value="Heebo" data-i18n="font_heebo">Heebo (מובנה באתר)</option>
+        <option value="other" data-i18n="font_other">גופן אחר שמותקן במחשב…</option>
+      </select>
+
+      <label for="custom-font" class="font-only" data-i18n="font_name">שם הגופן</label>
+      <input id="custom-font" class="font-only" type="text" dir="auto" autocomplete="off" spellcheck="false" placeholder="לדוגמה: David" data-i18n-placeholder="font_name_ph">
+
+      <label for="cols" data-i18n="cols">רמזים בכל שורה</label>
       <input id="cols" type="number" min="1" max="12" step="1" value="3" inputmode="numeric">
 
-      <label for="font-size">Starting text size</label>
+      <label for="font-size" data-i18n="font_size">גודל טקסט התחלתי</label>
       <input id="font-size" type="number" min="8" max="120" step="1" value="34" inputmode="numeric">
 
-      <label for="direction">Direction</label>
+      <label for="width" data-i18n="width">רוחב התמונה (פיקסלים)</label>
+      <input id="width" type="number" min="300" max="3000" step="100" value="1800" inputmode="numeric">
+
+      <label for="direction" data-i18n="direction">כיוון כתיבה</label>
       <select id="direction">
-        <option value="auto">Auto (Hebrew → right to left)</option>
-        <option value="rtl">Right to left</option>
-        <option value="ltr">Left to right</option>
+        <option value="auto" data-i18n="dir_auto">אוטומטי (עברית ← מימין לשמאל)</option>
+        <option value="rtl" data-i18n="dir_rtl">מימין לשמאל</option>
+        <option value="ltr" data-i18n="dir_ltr">משמאל לימין</option>
       </select>
     </div>
 
-    <label class="check"><input id="show-original" type="checkbox" checked> Show the original puzzle at the top</label>
+    <label class="check"><input id="show-original" type="checkbox" checked> <span data-i18n="show_original">להציג את הפאזל המקורי למעלה</span></label>
 
+    <p id="font-note" class="note" aria-live="polite" hidden></p>
     <p id="status" role="status" aria-live="polite"></p>
 
+    <div class="grid">
+      <label for="file-name" data-i18n="file_name">שם הקובץ</label>
+      <input id="file-name" type="text" dir="auto" value="bracket_city" autocomplete="off" spellcheck="false">
+    </div>
     <div class="buttons">
-      <button type="button" id="dl-png" disabled>Download PNG</button>
-      <button type="button" id="dl-pdf" disabled>Download PDF</button>
+      <button type="button" id="dl-png" disabled data-i18n="dl_png">הורדת PNG</button>
+      <button type="button" id="dl-pdf" disabled data-i18n="dl_pdf">הורדת PDF</button>
+      <button type="button" id="dl-txt" disabled data-i18n="dl_txt" data-i18n-title="dl_txt_title">הורדת טקסט</button>
     </div>
   </section>
 
-  <section class="preview" aria-label="Preview">
-    <canvas id="sheet" width="1800" height="2546" aria-label="Worksheet preview"></canvas>
+  <section class="preview" data-i18n-label="preview" aria-label="תצוגה מקדימה">
+    <canvas id="sheet" width="1800" height="2546" data-i18n-label="preview" aria-label="תצוגה מקדימה"></canvas>
   </section>
 </main>
 
 <footer>
-  <p><strong>Not affiliated.</strong> This is an unofficial, fan-made tool. It is not affiliated with, endorsed by, or associated with Bracket City or The Atlantic; those names and trademarks belong to their owners. No puzzles are included (the examples are made up), and this tool gives no right to reproduce anyone's puzzles: if you print puzzles made by others, getting permission is up to you. Provided "as is", without warranty, under the MIT license. Not legal advice.
+  <p data-lang="he"><strong>לא רשמי ולא קשור.</strong> זהו כלי לא רשמי שנבנה על ידי מעריצים. הוא אינו קשור ל-Bracket City או ל-The Atlantic, אינו מאושר על ידן ואינו משויך אליהן; השמות והסימנים המסחריים האלה שייכים לבעליהם. לא כלולים כאן פאזלים (הדוגמאות הומצאו לפרויקט), והכלי אינו נותן זכות לשכפל פאזלים של אף אחד: מי שמדפיס פאזלים שאחרים יצרו אחראי לקבל רשות. מסופק "כמות שהוא" (as is), ללא אחריות, ברישיון MIT; הגופן המובנה Heebo מופץ ברישיון SIL Open Font License (<a href="fonts/OFL.txt">fonts/OFL.txt</a>). אין בכך ייעוץ משפטי.
+  <a href="https://github.com/orr-lab/bracket-city-paper#not-affiliated-and-legal-notes">ההערות המלאות וקוד המקור (באנגלית)</a>.</p>
+  <p data-lang="en" lang="en" dir="ltr" hidden><strong>Not affiliated.</strong> This is an unofficial, fan-made tool. It is not affiliated with, endorsed by, or associated with Bracket City or The Atlantic; those names and trademarks belong to their owners. No puzzles are included (the examples are made up), and this tool gives no right to reproduce anyone's puzzles: if you print puzzles made by others, getting permission is up to you. Provided "as is", without warranty, under the MIT license; the built-in Heebo font is under the SIL Open Font License (<a href="fonts/OFL.txt">fonts/OFL.txt</a>). Not legal advice.
   <a href="https://github.com/orr-lab/bracket-city-paper#not-affiliated-and-legal-notes">Full notes and source</a>.</p>
 </footer>
 
+<script src="i18n.js"></script>
 <script src="worksheet.js"></script>
 <script src="pdf.js"></script>
 <script src="app.js"></script>
