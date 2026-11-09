@@ -140,7 +140,7 @@
   }
 
   // Fill every element marked data-i18n (text), data-i18n-placeholder / -title / -label (attributes),
-  // show the blocks marked data-lang for this language, and flip the page direction.
+  // and flip the page direction.
   function apply(newLang) {
     lang = STRINGS[newLang] ? newLang : "he";
     var root = document.documentElement;
@@ -158,9 +158,6 @@
       });
     var btn = document.getElementById("lang"); // the switch is written in the other language
     if (btn) btn.lang = lang === "he" ? "en" : "he";
-    document.querySelectorAll("[data-lang]").forEach(function (el) {
-      el.hidden = el.getAttribute("data-lang") !== lang;
-    });
   }
 
   global.I18n = {

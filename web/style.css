@@ -112,7 +112,7 @@ body {
   font: 15px/1.5 Heebo, Arial, "Segoe UI", Roboto, sans-serif;
 }
 
-.top, .layout, footer { max-width: 1240px; margin-inline: auto; }
+.top, .layout { max-width: 1240px; margin-inline: auto; }
 
 button, input, select, textarea { font: inherit; color: inherit; }
 
@@ -399,18 +399,6 @@ input:focus, select:focus { border-color: var(--ink-2); }
 .empty p { margin: 6px 0; }
 .empty-title { font-size: 1.1rem; font-weight: 700; color: var(--ink); }
 .empty .chip { margin: 4px 2px 0; }
-
-/* ---------------------------------------------------------------- footer */
-
-footer {
-  border-top: 1px solid var(--line);
-  padding: 14px 0 28px;
-  font-size: 0.78rem;
-  line-height: 1.6;
-  color: var(--ink-3);
-}
-footer p { max-width: 900px; margin: 0; }
-footer a { color: inherit; }
 
 @media (max-width: 520px) {
   .top { padding: 16px 0 12px; align-items: flex-start; }
