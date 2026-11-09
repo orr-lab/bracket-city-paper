@@ -189,8 +189,12 @@ def make_text(rows, original, rtl, blank_len=22):
     lines = [mark + LABELS[rtl]["original"], mark + original, ""]
     for i, row in enumerate(rows):
         lines.append(mark + row_title(i, len(rows), rtl))
+        last = i == len(rows) - 1
         for n in row:
-            lines.append(f"{mark}{n.num}.\t{clue_text(n)}\t{blank}")
+            clue = clue_text(n)
+            # the final sentence's answer is about as long as its clue, so give it room
+            line = "_" * max(blank_len, len(clue)) if last else blank
+            lines.append(f"{mark}{n.num}.\t{clue}\t{line}")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 

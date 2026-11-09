@@ -247,7 +247,13 @@
     var lines = [mark + LABELS[rtl].original, mark + original, ""];
     rows.forEach(function (row, i) {
       lines.push(mark + rowTitle(i, rows.length, rtl));
-      row.forEach(function (n) { lines.push(mark + n.num + ".\t" + clueText(n, spaced) + "\t" + blank); });
+      var last = i === rows.length - 1;
+      row.forEach(function (n) {
+        var clue = clueText(n, spaced);
+        // the final sentence's answer is about as long as its clue, so give it room
+        var line = last ? new Array(Math.max(blankLen || 22, Array.from(clue).length) + 1).join("_") : blank;
+        lines.push(mark + n.num + ".\t" + clue + "\t" + line);
+      });
       lines.push("");
     });
     return lines.join("\n").replace(/\s+$/, "") + "\n";
