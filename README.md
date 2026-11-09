@@ -31,7 +31,8 @@ python3 bracket_layers.py --out my_puzzle
 
 | Option | What it does |
 | --- | --- |
-| `--ratio full` | Page shape. `full` = A4 portrait (default), `3/4` = three-quarter page, `1/2` = half page, or custom `width:height` like `3:4` |
+| `--ratio full` | Page shape. `full` = whole A4 page (default), `3/4` = three-quarter page, `1/2` = half page, or custom `width:height` like `3:4` |
+| `--orientation portrait\|landscape` | Orientation of the page the presets are cut from. Default `portrait` (vertical). A custom `width:height` is used exactly as typed |
 | `--no-original` | Leave the original puzzle out of the picture (shown at the top by default) |
 | `--direction auto\|rtl\|ltr` | Layout direction. Default `auto` switches to right-to-left if the puzzle contains Hebrew |
 | `--cols N` | Max clues side by side in a row (default 3) |

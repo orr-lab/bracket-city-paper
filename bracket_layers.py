@@ -9,6 +9,7 @@ Usage:
     python3 bracket_layers.py puzzle.txt --out my_puzzle --cols 3 --width 1800
     python3 bracket_layers.py puzzle.txt --direction rtl     # force direction (default: auto-detect)
     python3 bracket_layers.py puzzle.txt --ratio 1/2         # half page; also: full (default), 3/4, or 3:4
+    python3 bracket_layers.py puzzle.txt --orientation landscape   # presets on a landscape page (default: portrait)
                                                              # text shrinks to fit, short puzzles leave blank space below
 
 Outputs (next to the input, or use --out PREFIX):
@@ -334,21 +335,22 @@ def make_image(rows, original, rtl, width=1800, cols=3, fsize=34, show_original=
 
 # ---------------------------------------------------------------- page ratio
 
-# width:height of the picture, based on an A4 portrait page (210 x 297 mm)
-PRESETS = {
-    "full": (210, 297),
-    "3/4": (210, 297 * 0.75),
-    "1/2": (210, 297 * 0.5),
-}
+# Presets are a share of an A4 page (210 x 297 mm), cut by height: the full page, the top
+# three-quarters, or the top half. --orientation decides whether that page is portrait
+# (210 wide, 297 tall) or landscape (297 wide, 210 tall).
+PRESETS = {"full": 1.0, "3/4": 0.75, "1/2": 0.5}
+PAGES = {"portrait": (210, 297), "landscape": (297, 210)}
 
 
-def parse_ratio(s):
+def parse_ratio(s, orientation="portrait"):
+    """Return (width, height) for the picture. A custom width:height is used exactly as typed."""
     s = s.strip().lower()
     if s in PRESETS:
-        return PRESETS[s]
+        page_w, page_h = PAGES[orientation]
+        return page_w, page_h * PRESETS[s]
     m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*[:x]\s*(\d+(?:\.\d+)?)", s)
     if not m or float(m.group(1)) <= 0 or float(m.group(2)) <= 0:
-        sys.exit("--ratio should be full, 3/4, 1/2, or width:height like 3:4 (portrait means height bigger)")
+        sys.exit("--ratio should be full, 3/4, 1/2, or width:height like 3:4 (height bigger means vertical)")
     return float(m.group(1)), float(m.group(2))
 
 
@@ -382,8 +384,11 @@ def main():
     ap.add_argument("--direction", choices=["auto", "rtl", "ltr"], default="auto",
                     help="layout direction (default: rtl if the puzzle contains Hebrew)")
     ap.add_argument("--ratio", default="full",
-                    help="page shape: full (A4 portrait, default), 3/4 (three-quarter page), 1/2 (half page), "
+                    help="page shape: full (whole A4 page, default), 3/4 (three-quarter page), 1/2 (half page), "
                          "or custom width:height like 3:4")
+    ap.add_argument("--orientation", choices=["portrait", "landscape"], default="portrait",
+                    help="page orientation for the full, 3/4 and 1/2 presets (default: portrait/vertical); "
+                         "a custom width:height ignores it")
     ap.add_argument("--no-original", action="store_true",
                     help="leave the original puzzle out of the picture (default: shown at the top)")
     ap.add_argument("--text", action="store_true", help="also write the tab-separated text version")
@@ -416,7 +421,7 @@ def main():
 
     original = " ".join(text.split())
     rows = layer(root)
-    rw, rh = parse_ratio(args.ratio)
+    rw, rh = parse_ratio(args.ratio, args.orientation)
     target_h = round(args.width * rh / rw)
     img = fit_to_ratio(rows, original, rtl, args.width, args.cols, args.font_size, target_h,
                        show_original=not args.no_original)
